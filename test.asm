@@ -12,9 +12,9 @@ start   inc SCREEN  ; increase screen colour
         jsr delay
         jmp start   ; repeat
 
-delay   inx ; init reg a to 0
-        txa
-        jsr PRINTSR
+delay   inx ; increment the x index register to 0
+        txa ; store the result in accumulator
+        jsr PRINTSR ;print the character that is in accumulator
         bne delay 
         rts  
 
