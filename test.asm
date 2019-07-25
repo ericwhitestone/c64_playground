@@ -12,14 +12,12 @@ start   inc SCREEN  ; increase screen colour
         jsr delay
         jmp start   ; repeat
 
-delay   ldx #$0 
-round   iny ; increment the x index register to 0
-        ;jsr PRINTSR ;print the character that is in accumulator
-        bne round
-        txa
-        jsr PRINTSR
-        inx
-        bne round
-        rts  
 
-
+delay    ldy #$0
+rollover inx
+         bne rollover
+         iny
+         tya 
+         jsr PRINTSR
+         bne rollover
+         rts
