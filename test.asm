@@ -1,7 +1,7 @@
 ; This program rapidly updates the colors
 ; of the screen and the border.
 
-*=$c000   ; starting address of the program 
+*=$C000   ; starting address of the program 
 
 BORDER = $d020
 SCREEN = $d021
@@ -12,10 +12,14 @@ start   inc SCREEN  ; increase screen colour
         jsr delay
         jmp start   ; repeat
 
-delay   inx ; increment the x index register to 0
-        txa ; store the result in accumulator
-        jsr PRINTSR ;print the character that is in accumulator
-        bne delay 
+delay   ldx #$0 
+round   iny ; increment the x index register to 0
+        ;jsr PRINTSR ;print the character that is in accumulator
+        bne round
+        txa
+        jsr PRINTSR
+        inx
+        bne round
         rts  
 
 
