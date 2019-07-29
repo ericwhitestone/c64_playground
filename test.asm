@@ -1,27 +1,44 @@
 ; This program rapidly updates the colors
 ; of the screen and the border.
 
-*=$C000   ; starting address of the program 
+                *=$C000   ; starting address of the program 
 
-BORDER = $d020
-SCREEN = $d021
-PRINTSR = $ffd2
-SPRITE0_PTR = $07F8
+                BORDER = $d020
+                SCREEN = $d021
+                PRINTSR = $ffd2
+                SPRITE0_COLOR = $D027
+                SPRITE0_PTR_REG = $07F8
+                SPRITE0_X = $D000
+                SPRITE0_Y = $D001
+                SPRITE_MSB = $D010
+                SPRITE0_PTR_VAL = $40
+                SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
 
-                ldx #$C9     ;set x to 0
+                ldx #$C9     ;Set background color
                 stx SCREEN ;start screen color at 0
                 stx BORDER ;start border color at 0
                 jsr write_pattern ;write the sprite pattern in the 64 sprite bytes
-                ldx #$FA ;store FA in x to written to sprite pointer
-                stx SPRITE0_PTR ; write FA to be the value of the sprite pointer,
-                                ; this is the value that is used to derive $200 used as the start of the sprite data
-                ldx $FFFF
-loop            stx $D015   ; write FFFF to sprite enable 
+                ; set up positioning of sprite 0
+                ldx #$40 ; 64d y position
+                stx SPRITE0_Y
+                ldx #$0 
+                stx SPRITE_MSB ; msb off to start
+                ldx #$40 ; 64d x position
+                stx SPRITE0_X
+
+                ldx #$FF
+loop            stx $D015   ; write FF to sprite enable 
                 jmp loop
 
-write_pattern   lda #$C7        ;store the byte pattern for the sprite
+
+; subroutines
+
+write_pattern   lda #$6F        ;store the byte pattern for the sprite
+                ldx #SPRITE0_PTR_VAL ;store the sprite pointer val in x and write to sprite pointer reg
+                stx SPRITE0_PTR_REG
+
                 ldy #$0
-write_byte      sta $3E80, Y      ; $10(segment multplier)*$40 
+write_byte      sta SPRITE0_BASEADDR, Y     ; $40 * $40 (sprite pointer * 64)
                 iny             ; increment the idx
                 cpy #$40        ; check if 64 bytes have been written
                 bne write_byte  ; keep going until we hit 64 bytes
