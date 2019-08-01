@@ -2,7 +2,7 @@
 ; of the screen and the border.
 
                 *=$C000   ; starting address of the program 
-;
+
                 BORDER = $d020
                 SCREEN = $d021
                 PRINTSR = $ffd2
@@ -39,8 +39,7 @@
                 stx $D015   ; write FF to sprite enable 
                 ldx #$0 
                 stx SPRITE_MSB ; msb off to start
-
-loop            jmp loop
+                jsr main_loop
 
 
 ; subroutines
@@ -78,19 +77,16 @@ position_color_sprite
     txa  ; init a with stepping arg again 
     adc #$70 ;  add the stepping to x pos
     sta SPRITE0_X, Y ;write x position
+    ldx #$0 ;start the delay counter at 0 before enterin main loop
+    lda #$0
     rts
 
-;start_cycle     inc SCREEN  ; increase screen colour 
-;                inc BORDER  ; increase border colour
-;                jsr delay
-;                jmp start_cycle   ; repeat
-;
-;
-;delay           ldy #$0
-;rollover        inx
-;                bne rollover
-;                iny
-;                tya 
-;                jsr PRINTSR
-;                bne rollover
-;                rts
+main_loop:
+    cpx #$0
+    beq move_sprite ; if 0 is in a, move the sprite, this is to delay for a count of $FF
+    inx
+move_sprite:
+    ldy SPRITE0_X
+    iny
+    sty SPRITE0_X
+    jmp main_loop
