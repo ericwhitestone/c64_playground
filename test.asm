@@ -77,14 +77,25 @@ position_color_sprite
     txa  ; init a with stepping arg again 
     adc #$70 ;  add the stepping to x pos
     sta SPRITE0_X, Y ;write x position
-    ldx #$0 ;start the delay counter at 0 before enterin main loop
-    lda #$0
     rts
 
+; count to $FFFF using x and y registers
+delay:
+    ldx #$0
+    ldy #$0
+inc_ones
+    inx 
+    cpx #$0 ; If x rolled over, increment the $10s place represented by y
+    bne inc_ones
+    iny
+    ldx #$0 ; start the 1s place back at 0
+    cpy #$FF
+    bne inc_ones
+    rts
+    
+
 main_loop:
-    cpx #$0
-    beq move_sprite ; if 0 is in a, move the sprite, this is to delay for a count of $FF
-    inx
+    jsr delay
 move_sprite:
     ldy SPRITE0_X
     iny
