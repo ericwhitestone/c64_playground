@@ -89,7 +89,7 @@ inc_ones
     bne inc_ones
     iny
     ldx #$0 ; start the 1s place back at 0
-    cpy #$FF
+    cpy #$0F ; Adjust this value to control sprite speed
     bne inc_ones
     rts
     
@@ -100,4 +100,5 @@ move_sprite:
     ldy SPRITE0_X
     iny
     sty SPRITE0_X
+    sty SPRITE0_Y
     jmp main_loop
