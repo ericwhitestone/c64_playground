@@ -6,16 +6,18 @@
                 BORDER = $d020
                 SCREEN = $d021
                 PRINTSR = $ffd2
-                SPRITE0_COLOR = $D027
+                SPRITE0_COLOR_REG = $D027
+                SPRITE_COLOR_VAL = $07
                 SPRITE0_PTR_REG = $07F8
-                SPRITE1_PTR_REG = $07F9
                 SPRITE0_X = $D000
                 SPRITE0_Y = $D001
                 SPRITE1_X = $D002
                 SPRITE1_Y = $D003
                 SPRITE_MSB = $D010
-                SPRITE0_PTR_VAL = $40 ;$F0 $20 works, $40 $60 does not
-                SPRITE1_PTR_VAL = $40
+                ;when using bank 0, addresses $1000 - $1FFF are unuable for video
+                ; sprite blocks $40 - $7F
+                SPRITE0_PTR_VAL = $3F 
+                SPRITE1_PTR_VAL = $3F
                 SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
                 SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
                 CLEAR_SCREEN = $FF81
@@ -27,10 +29,10 @@
                 jsr write_pattern ;write the sprite pattern in the 64 sprite bytes
                 ldx #$1
                 ldy #$0
-                jsr position_sprite  
+                jsr position_color_sprite  
                 ldx #$40
                 ldy #$1
-                jsr position_sprite  
+                jsr position_color_sprite  
                 
                 ;all sprite cfg
                 ldx #$03
@@ -43,24 +45,30 @@ loop            jmp loop
 
 ; subroutines
 
-write_pattern   lda #$FF ;store the byte pattern for the sprite
-                ldx #SPRITE0_PTR_VAL ;store the sprite pointer val in x and write to sprite pointer reg
-                stx SPRITE0_PTR_REG
-                rts
-
-                ldy #$0
-write_byte      sta SPRITE0_BASEADDR, Y ; write the pattern in a to the 64 bytes of the sprit register, indexed by y
-                iny             ; increment the idx
-                cpy #$40        ; check if 64 bytes have been written
-                bne write_byte  ; keep going until we hit 64 bytes
-                rts
+write_pattern   
+    lda #$FF ;store the byte pattern for the sprite
+    ldx #SPRITE0_PTR_VAL ;store the sprite pointer val in x and write to sprite pointer reg
+    stx SPRITE0_PTR_REG   ; set sprite 0 data location
+    stx SPRITE0_PTR_REG+1 ; set sprite 1 data location
+    ldy #$0
+write_byte      
+    sta SPRITE0_BASEADDR, Y ; write the pattern in a to the 64 bytes of the sprit register, indexed by y
+    iny             ; increment the idx
+    cpy #$40        ; check if 64 bytes have been written
+    bne write_byte  ; keep going until we hit 64 bytes
+    rts
 
 ; Position sprite
 ; parameters
 ; x regsister - stepping to be added to the positions
 ; y sprite # 0-8
 ; set up positioning of sprite y
-position_sprite 
+position_color_sprite
+                          ; First use y to index into the color reg, they are stepped by 1
+                          ; Then, shift y to multiply by 2 because position registers step by 2 for each sprite
+                          ; since x and y positions are adjacent
+    lda #SPRITE_COLOR_VAL ;load the color val in a
+    sta SPRITE0_COLOR_REG, Y ; write the color val in this indexed sprite color reg
     tya  ; multiply the sprite # by 2
     asl 
     tay
