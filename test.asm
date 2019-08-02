@@ -107,9 +107,17 @@ transform_sprite
     lda PARAM0 ; copy the arg to a
     and #$3F
     tay 
+    tax
     lda PARAM0
-    eor SPRITE0_BASEADDR, Y   ; xor the sprite val in a
+    asl SPRITE0_BASEADDR, X   ; xor the sprite val in a
     sta SPRITE0_BASEADDR, Y   ; write the new sprite val back
+    tya 
+    rol ; rotate index left
+    and #$3F  ; ensure it's less than 64
+    tay  ; xfer it back into y
+    lda SPRITE0_BASEADDR  ; grab the bit pattern in the first byte of sprite
+    sbc PARAM0
+    sta SPRITE0_BASEADDR, Y ;write that bit pattern to the newly generated index 
     rts
 
 ; PARAM0 -  move count
