@@ -1,45 +1,53 @@
 ; This program rapidly updates the colors
 ; of the screen and the border.
 
-                *=$C000   ; starting address of the program 
+*=$C000   ; starting address of the program 
+            ; parameter passing and return values
+PARAM0 = $9000   ; 
+PARAM1 = PARAM0 + 1
+PARAM2 = PARAM1 + 1
+RETVAL = PARAM2 + 1
+MOVE_COUNT = RETVAL + 1
 
-                BORDER = $d020
-                SCREEN = $d021
-                PRINTSR = $ffd2
-                SPRITE0_COLOR_REG = $D027
-                SPRITE_COLOR_VAL = $07
-                SPRITE0_PTR_REG = $07F8
-                SPRITE0_X = $D000
-                SPRITE0_Y = $D001
-                SPRITE1_X = $D002
-                SPRITE1_Y = $D003
-                SPRITE_MSB = $D010
-                ;when using bank 0, addresses $1000 - $1FFF are unuable for video
-                ; sprite blocks $40 - $7F
-                SPRITE0_PTR_VAL = $3F 
-                SPRITE1_PTR_VAL = $3F
-                SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
-                SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
-                CLEAR_SCREEN = $FF81
+BORDER = $d020
+SCREEN = $d021
+PRINTSR = $ffd2
+SPRITE0_COLOR_REG = $D027
+SPRITE_COLOR_VAL = $07
+SPRITE0_PTR_REG = $07F8
+SPRITE0_X = $D000
+SPRITE0_Y = $D001
+SPRITE1_X = $D002
+SPRITE1_Y = $D003
+SPRITE_MSB = $D010
+;when using bank 0, addresses $1000 - $1FFF are unuable for video
+; sprite blocks $40 - $7F
+SPRITE0_PTR_VAL = $3F 
+SPRITE1_PTR_VAL = $3F
+SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
+SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
+CLEAR_SCREEN = $FF81
 
-                jsr CLEAR_SCREEN 
-                ldx #$00     ;Set background color
-                stx SCREEN ;start screen color at 0
-                stx BORDER ;start border color at 0
-                jsr write_pattern ;write the sprite pattern in the 64 sprite bytes
-                ldx #$1
-                ldy #$0
-                jsr position_color_sprite  
-                ldx #$40
-                ldy #$1
-                jsr position_color_sprite  
-                
-                ;all sprite cfg
-                ldx #$03
-                stx $D015   ; write FF to sprite enable 
-                ldx #$0 
-                stx SPRITE_MSB ; msb off to start
-                jsr main_loop
+jsr CLEAR_SCREEN 
+ldx #$00     ;Set background color
+stx SCREEN ;start screen color at 0
+stx BORDER ;start border color at 0
+jsr write_pattern ;write the sprite pattern in the 64 sprite bytes
+ldx #$1
+ldy #$0
+jsr position_color_sprite  
+ldx #$40
+ldy #$1
+jsr position_color_sprite  
+
+;all sprite cfg
+ldx #$03
+stx $D015   ; write FF to sprite enable 
+ldx #$0 
+stx SPRITE_MSB ; msb off to start
+lda #$0
+sta PARAM0
+jsr main_loop
 
 
 ; subroutines
@@ -92,13 +100,30 @@ inc_ones
     cpy #$0F ; Adjust this value to control sprite speed
     bne inc_ones
     rts
-    
 
+; PARAM0 index to transform
+; PARAM1  value to transform with 
+transform_sprite
+    lda PARAM0 ; copy the arg to a
+    and #$3F
+    tay 
+    lda PARAM0
+    eor SPRITE0_BASEADDR, Y   ; xor the sprite val in a
+    sta SPRITE0_BASEADDR, Y   ; write the new sprite val back
+    rts
+
+; PARAM0 -  move count
 main_loop:
+    lda PARAM0
+    sta MOVE_COUNT
+run:    
     jsr delay
-move_sprite:
+    ldy MOVE_COUNT
+    sty PARAM0
+    jsr transform_sprite
     ldy SPRITE0_X
     iny
     sty SPRITE0_X
     sty SPRITE0_Y
-    jmp main_loop
+    inc MOVE_COUNT
+    jmp run
