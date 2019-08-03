@@ -101,24 +101,62 @@ inc_ones
     bne inc_ones
     rts
 
-; PARAM0 index to transform
-; PARAM1  value to transform with 
-transform_sprite
-    lda PARAM0 ; copy the arg to a
-    and #$3F
-    tay 
-    tax
-    lda PARAM0
-    asl SPRITE0_BASEADDR, X   ; xor the sprite val in a
-    sta SPRITE0_BASEADDR, Y   ; write the new sprite val back
-    tya 
-    rol ; rotate index left
-    and #$3F  ; ensure it's less than 64
-    tay  ; xfer it back into y
-    lda SPRITE0_BASEADDR  ; grab the bit pattern in the first byte of sprite
-    sbc PARAM0
-    sta SPRITE0_BASEADDR, Y ;write that bit pattern to the newly generated index 
+
+transform_sprite:
+    ldx #$0 ;byte index
+new_row:
+    cpx #$3F
+    bmi more_rows
     rts
+more_rows
+    ; msb
+    ; byte pos 0 on row
+    lda SPRITE0_BASEADDR, X
+    cmp #$0 ; if msb is 0 skip to the middle byte
+    beq midb ; jump to the middle byte 
+             ; if this is 0 then so is the lsb
+    lsr SPRITE0_BASEADDR, X ; shift bits right
+        ; lsb
+    inx
+    inx ; Process the lsb
+    asl SPRITE0_BASEADDR, X
+    inx
+    jmp new_row
+midb:
+    dex
+    lda #$0
+    cmp SPRITE0_BASEADDR, X 
+    beq end_row
+    lda #$FF ; 1111 1111
+    cmp SPRITE0_BASEADDR, X
+    bne mid_pattern_two
+    lda #$FE
+    sta SPRITE0_BASEADDR, X
+    jmp end_row
+mid_pattern_two:
+    lda #$FE ; 0111 1110
+    cmp SPRITE0_BASEADDR, X
+    bne mid_pattern_three
+    lda #$3C
+    sta SPRITE0_BASEADDR, x
+    jmp end_row
+mid_pattern_three:
+    lda #$3C ; 0011 1100
+    cmp SPRITE0_BASEADDR, X 
+    bne mid_pattern_four
+    lda #$18 ; 
+    sta SPRITE0_BASEADDR, X 
+mid_pattern_four:
+    lda #$18 ; 0001 1000
+    cmp SPRITE0_BASEADDR, X 
+    bne end_row
+    lda #$0 ; 
+    sta SPRITE0_BASEADDR, X 
+end_row:
+    inx 
+    inx
+jmp new_row
+
 
 ; PARAM0 -  move count
 main_loop:
