@@ -97,65 +97,89 @@ inc_ones
     bne inc_ones
     iny
     ldx #$0 ; start the 1s place back at 0
-    cpy #$0F ; Adjust this value to control sprite speed
+    cpy #$3F ; Adjust this value to control sprite speed
     bne inc_ones
     rts
 
-
 transform_sprite:
-    ldx #$0 ;byte index
+    ; alias row aliases to use the param storage
+    BOTTOMROW=PARAM0  
+    TOPROW=PARAM1
+    CURRENTROW=PARAM2
+    lda SPRITE0_BASEADDR
+    sta TOPROW
+    lda #$3C
+    sta BOTTOMROW
 new_row:
-    cpx #$3F
-    bmi more_rows
+    ldy TOPROW
+    sty CURRENTROW
+    jsr disappear_row
+    lda BOTTOMROW
+    cmp TOPROW ; if the bottome row and top row are == then end sub
+    beq sprite_transformed
+    sta CURRENTROW
+    jsr disappear_row
+    ; move the bottom and top row pointers accordingly
+    lda BOTTOMROW
+    sbc #$3
+    sta BOTTOMROW
+    lda TOPROW
+    adc #$3
+    sta TOPROW
+    jmp new_row
+    ;sprite transformed ends the subroutine
+sprite_transformed:
     rts
-more_rows
+
+disappear_row:
     ; msb
     ; byte pos 0 on row
-    lda SPRITE0_BASEADDR, X
+    ldx #$0
+    lda CURRENTROW, X
     cmp #$0 ; if msb is 0 skip to the middle byte
     beq midb ; jump to the middle byte 
-             ; if this is 0 then so is the lsb
-    lsr SPRITE0_BASEADDR, X ; shift bits right
+            ; if this is 0 then so is the lsb
+    lsr CURRENTROW, X ; shift bits right
         ; lsb
     inx
     inx ; Process the lsb
-    asl SPRITE0_BASEADDR, X
+    asl CURRENTROW, X
     inx
-    jmp new_row
+    rts
 midb:
     dex
     lda #$0
-    cmp SPRITE0_BASEADDR, X 
+    cmp CURRENTROW, X 
     beq end_row
     lda #$FF ; 1111 1111
-    cmp SPRITE0_BASEADDR, X
+    cmp CURRENTROW, X
     bne mid_pattern_two
     lda #$FE
-    sta SPRITE0_BASEADDR, X
+    sta CURRENTROW, X
     jmp end_row
 mid_pattern_two:
     lda #$FE ; 0111 1110
-    cmp SPRITE0_BASEADDR, X
+    cmp CURRENTROW, X
     bne mid_pattern_three
     lda #$3C
-    sta SPRITE0_BASEADDR, x
+    sta CURRENTROW, x
     jmp end_row
 mid_pattern_three:
     lda #$3C ; 0011 1100
-    cmp SPRITE0_BASEADDR, X 
+    cmp CURRENTROW, X 
     bne mid_pattern_four
     lda #$18 ; 
-    sta SPRITE0_BASEADDR, X 
+    sta CURRENTROW, X 
 mid_pattern_four:
     lda #$18 ; 0001 1000
-    cmp SPRITE0_BASEADDR, X 
+    cmp CURRENTROW, X 
     bne end_row
     lda #$0 ; 
-    sta SPRITE0_BASEADDR, X 
+    sta CURRENTROW, X 
 end_row:
-    inx 
-    inx
-jmp new_row
+;    inx 
+;    inx
+rts
 
 
 ; PARAM0 -  move count
