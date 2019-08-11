@@ -8,18 +8,17 @@ PARAM1 = PARAM0 + 1
 PARAM2 = PARAM1 + 1
 RETVAL = PARAM2 + 1
 MOVE_COUNT = RETVAL + 1
-
 BORDER = $d020
 SCREEN = $d021
 PRINTSR = $ffd2
 SPRITE0_COLOR_REG = $D027
 SPRITE_COLOR_VAL = $07
-SPRITE0_PTR_REG = $07F8
-SPRITE0_X = $D000
-SPRITE0_Y = $D001
-SPRITE1_X = $D002
-SPRITE1_Y = $D003
-SPRITE_MSB = $D010
+!address SPRITE0_PTR_REG = $07F8
+!address SPRITE0_X = $D000
+!address SPRITE0_Y = $D001
+!address SPRITE1_X = $D002
+!address SPRITE1_Y = $D003
+!address SPRITE_MSB = $D010
 ;when using bank 0, addresses $1000 - $1FFF are unuable for video
 ; sprite blocks $40 - $7F
 SPRITE0_PTR_VAL = $3F 
@@ -27,6 +26,7 @@ SPRITE1_PTR_VAL = $3F
 SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
 SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
 CLEAR_SCREEN = $FF81
+
 
 jsr CLEAR_SCREEN 
 ldx #$00     ;Set background color
@@ -102,7 +102,7 @@ inc_ones
     rts
 
 transform_sprite:
-    ; alias row aliases to use the param storage
+    ; row aliases to use the param storage
     BOTTOMROW=PARAM0  
     TOPROW=PARAM1
     CURRENTROW=PARAM2
@@ -137,15 +137,14 @@ disappear_row:
     ldx #$0
     lda CURRENTROW, X
     cmp #$0 ; if msb is 0 skip to the middle byte
-    beq midb ; jump to the middle byte 
+    beq midb ; jump to the middle byte; 
             ; if this is 0 then so is the lsb
     lsr CURRENTROW, X ; shift bits right
         ; lsb
     inx
     inx ; Process the lsb
     asl CURRENTROW, X
-    inx
-    rts
+    jmp disappear_row 
 midb:
     dex
     lda #$0
@@ -193,7 +192,22 @@ run:
     jsr transform_sprite
     ldy SPRITE0_X
     iny
-    sty SPRITE0_X
+    sty SPRITE0_X ;inc x and y to move the sprite across screen
     sty SPRITE0_Y
     inc MOVE_COUNT
     jmp run
+
+DEBUGSTR: 
+    !pet "hello, this is a c64 program! *we got here*", 0
+print_debug:
+    ldx #$0
+print_debug_loop:
+
+    lda DEBUGSTR, x
+    cmp #$0
+    beq end_print_debug
+    jsr PRINTSR
+    inx
+    jmp print_debug_loop
+end_print_debug
+    rts
