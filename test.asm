@@ -3,10 +3,14 @@
 
 *=$C000   ; starting address of the program 
             ; parameter passing and return values
-PARAM0 = $9000   ; 
-PARAM1 = PARAM0 + 1
-PARAM2 = PARAM1 + 1
-RETVAL = PARAM2 + 1
+!address PARAM0 = $9000   ; 
+!address PARAM1 = PARAM0 + 1
+!address PARAM2 = PARAM1 + 1
+!address RETVAL = PARAM2 + 1
+!address CURRENTROW = RETVAL + 1
+!address BOTTOMROW=PARAM0  
+
+TOPROW=PARAM1
 MOVE_COUNT = RETVAL + 1
 BORDER = $d020
 SCREEN = $d021
@@ -101,36 +105,57 @@ inc_ones
     bne inc_ones
     rts
 
-transform_sprite:
-    ; row aliases to use the param storage
-    BOTTOMROW=PARAM0  
-    TOPROW=PARAM1
-    CURRENTROW=PARAM2
+
+init_transform:
     lda SPRITE0_BASEADDR
     sta TOPROW
     lda #$3C
     sta BOTTOMROW
-new_row:
-    ldy TOPROW
+    rts
+
+
+transform_sprite:
+; disappear a top and bottom row in an interleving manner
+    ldx #$1 ;check middle byte and see if 0, if it is we are done with this row set
+    lda #$0
+    cmp TOPROW, x 
+    beq toprow_done ; middle byte of top row is now 0
+    lda TOPROW
+    sta CURRENTROW
+    jsr disappear_row ; work on top row
+toprow_done:
+    cmp BOTTOMROW, x 
+    beq bottomrow_done
+    lda BOTTOMROW 
+    sta CURRENTROW
+    jsr disappear_row ; work on bottom row
+
+    ldy TOPROW ; middle byte is not 0, keep working on top row
     sty CURRENTROW
     jsr disappear_row
-    lda BOTTOMROW
-    cmp TOPROW ; if the bottome row and top row are == then end sub
-    beq sprite_transformed
-    sta CURRENTROW
-    jsr disappear_row
-    ; move the bottom and top row pointers accordingly
+    cmp BOTTOMROW, x 
+    beq bottomrow_done 
+
+bottomrow_done:
+                                    ; if bottom == top don't move the pointers
+                                    ; in this case do nothing for now
+    lda TOPROW
+    cmp BOTTOMROW
+    beq end_bottomrow_done
+    lda TOPROW
+    adc #$3                 ; move row pointers 
+                            ; by adding 3 to the top and subbing 3 from bottom
+    sta TOPROW
     lda BOTTOMROW
     sbc #$3
     sta BOTTOMROW
-    lda TOPROW
-    adc #$3
-    sta TOPROW
-    jmp new_row
-    ;sprite transformed ends the subroutine
-sprite_transformed:
-    rts
+end_bottomrow_done:
+rts
 
+
+;TODO after a bit is moved, return. 
+;Each cycle this will be called for the bottom and top row
+;and only one bit should be transformed
 disappear_row:
     ; msb
     ; byte pos 0 on row
@@ -146,6 +171,8 @@ disappear_row:
     asl CURRENTROW, X
     jmp disappear_row 
 midb:
+
+    jsr print_debug
     dex
     lda #$0
     cmp CURRENTROW, X 
@@ -183,6 +210,8 @@ rts
 
 ; PARAM0 -  move count
 main_loop:
+
+    jsr init_transform
     lda PARAM0
     sta MOVE_COUNT
 run:    
