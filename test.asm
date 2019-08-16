@@ -10,8 +10,7 @@
 !address CURRENTROW = RETVAL + 1
 !address BOTTOMROW=PARAM0  
 
-TOPROW=PARAM1
-MOVE_COUNT = RETVAL + 1
+!address TOPROW=PARAM1
 BORDER = $d020
 SCREEN = $d021
 PRINTSR = $ffd2
@@ -109,7 +108,7 @@ inc_ones
 init_transform:
     lda SPRITE0_BASEADDR
     sta TOPROW
-    lda #$3C
+    lda SPRITE0_BASEADDR + $3C-$3 ;beginning of the last row
     sta BOTTOMROW
     rts
 
@@ -122,26 +121,21 @@ transform_sprite:
     beq toprow_done ; middle byte of top row is now 0
     lda TOPROW
     sta CURRENTROW
-    jsr disappear_row ; work on top row
+    jsr transform_once ; work on top row
 toprow_done:
+    ldx #$1
     cmp BOTTOMROW, x 
     beq bottomrow_done
     lda BOTTOMROW 
     sta CURRENTROW
-    jsr disappear_row ; work on bottom row
-
-    ldy TOPROW ; middle byte is not 0, keep working on top row
-    sty CURRENTROW
-    jsr disappear_row
-    cmp BOTTOMROW, x 
-    beq bottomrow_done 
-
+    jsr transform_once ; work on bottom row
+    jmp end_transform_sprite
 bottomrow_done:
                                     ; if bottom == top don't move the pointers
                                     ; in this case do nothing for now
     lda TOPROW
     cmp BOTTOMROW
-    beq end_bottomrow_done
+    beq end_transform_sprite
     lda TOPROW
     adc #$3                 ; move row pointers 
                             ; by adding 3 to the top and subbing 3 from bottom
@@ -149,81 +143,70 @@ bottomrow_done:
     lda BOTTOMROW
     sbc #$3
     sta BOTTOMROW
-end_bottomrow_done:
+end_transform_sprite:
 rts
 
 
 ;TODO after a bit is moved, return. 
 ;Each cycle this will be called for the bottom and top row
 ;and only one bit should be transformed
-disappear_row:
+transform_once:
     ; msb
     ; byte pos 0 on row
-    ldx #$0
-    lda CURRENTROW, X
+    lda CURRENTROW
     cmp #$0 ; if msb is 0 skip to the middle byte
     beq midb ; jump to the middle byte; 
             ; if this is 0 then so is the lsb
-    lsr CURRENTROW, X ; shift bits right
+    lsr CURRENTROW; shift bits right
         ; lsb
-    inx
-    inx ; Process the lsb
+    ldx #$2 ; last byte in row
     asl CURRENTROW, X
-    jmp disappear_row 
+    jmp end_transform_once
 midb:
-
-    jsr print_debug
     dex
     lda #$0
     cmp CURRENTROW, X 
-    beq end_row
+    rts
     lda #$FF ; 1111 1111
     cmp CURRENTROW, X
     bne mid_pattern_two
     lda #$FE
     sta CURRENTROW, X
-    jmp end_row
+    jmp end_transform_once
 mid_pattern_two:
     lda #$FE ; 0111 1110
     cmp CURRENTROW, X
     bne mid_pattern_three
     lda #$3C
     sta CURRENTROW, x
-    jmp end_row
+    jmp end_transform_once
 mid_pattern_three:
     lda #$3C ; 0011 1100
     cmp CURRENTROW, X 
     bne mid_pattern_four
     lda #$18 ; 
     sta CURRENTROW, X 
+    jmp end_transform_once
 mid_pattern_four:
     lda #$18 ; 0001 1000
     cmp CURRENTROW, X 
-    bne end_row
+    bne end_transform_once
     lda #$0 ; 
     sta CURRENTROW, X 
-end_row:
-;    inx 
-;    inx
-rts
-
+end_transform_once:
+    rts
 
 ; PARAM0 -  move count
 main_loop:
-
     jsr init_transform
-    lda PARAM0
-    sta MOVE_COUNT
+    lda #$0
 run:    
     jsr delay
-    ldy MOVE_COUNT
-    sty PARAM0
     jsr transform_sprite
     ldy SPRITE0_X
     iny
     sty SPRITE0_X ;inc x and y to move the sprite across screen
     sty SPRITE0_Y
-    inc MOVE_COUNT
     jmp run
 
 DEBUGSTR: 
