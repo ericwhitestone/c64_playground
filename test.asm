@@ -108,7 +108,7 @@ inc_ones
 init_transform:
     lda #$0 ; top row idx start at 0
     sta TOPROW ; this is not doing what I think it does TODO: womp womp
-    lda $3C-$3 ;beginning of the last row
+    lda $3F-$3 ;beginning of the last row
     sta BOTTOMROW
     rts
 
@@ -125,7 +125,7 @@ transform_sprite:
     jsr transform_once ; work on top row
 toprow_done:
     ldx BOTTOMROW
-    inx
+    inx ;check the middle byte for 0, if it's 0 this row is finished
     lda #$0
     cmp SPRITE0_BASEADDR, x 
     beq bottomrow_done
@@ -139,10 +139,20 @@ bottomrow_done:
     lda TOPROW
     cmp BOTTOMROW
     beq end_transform_sprite
+    ldx TOPROW
+    lda #$0
+    cmp TOPROW, x    ; if the middle byte of top row is 0 inc row to start 
+    beq check_bottom_row
+               ; a new one on the next iteration
     lda TOPROW
     adc #$3                 ; move row pointers 
                             ; by adding 3 to the top and subbing 3 from bottom
     sta TOPROW
+check_bottom_row:
+    ldx BOTTOMROW
+    lda #$0
+    cmp BOTTOMROW, x 
+    beq end_transform_sprite
     lda BOTTOMROW
     sbc #$3
     sta BOTTOMROW
