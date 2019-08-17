@@ -26,8 +26,8 @@ SPRITE_COLOR_VAL = $07
 ; sprite blocks $40 - $7F
 SPRITE0_PTR_VAL = $3F 
 SPRITE1_PTR_VAL = $3F
-SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
-SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
+!address SPRITE0_BASEADDR = SPRITE0_PTR_VAL*$40
+!address SPRITE1_BASEADDR = SPRITE1_PTR_VAL*$40
 CLEAR_SCREEN = $FF81
 
 
@@ -106,28 +106,31 @@ inc_ones
 
 
 init_transform:
-    lda SPRITE0_BASEADDR
-    sta TOPROW
-    lda SPRITE0_BASEADDR + $3C-$3 ;beginning of the last row
+    lda #$0 ; top row idx start at 0
+    sta TOPROW ; this is not doing what I think it does TODO: womp womp
+    lda $3C-$3 ;beginning of the last row
     sta BOTTOMROW
     rts
 
 
 transform_sprite:
 ; disappear a top and bottom row in an interleving manner
-    ldx #$1 ;check middle byte and see if 0, if it is we are done with this row set
+    ldx TOPROW ;check middle byte and see if 0, if it is we are done with this row set
+    inx ; middle byte
     lda #$0
-    cmp TOPROW, x 
+    cmp SPRITE0_BASEADDR, x 
     beq toprow_done ; middle byte of top row is now 0
-    lda TOPROW
-    sta CURRENTROW
+    dex ; set x back to the begining of row
+    stx CURRENTROW
     jsr transform_once ; work on top row
 toprow_done:
-    ldx #$1
-    cmp BOTTOMROW, x 
+    ldx BOTTOMROW
+    inx
+    lda #$0
+    cmp SPRITE0_BASEADDR, x 
     beq bottomrow_done
-    lda BOTTOMROW 
-    sta CURRENTROW
+    dex
+    stx CURRENTROW
     jsr transform_once ; work on bottom row
     jmp end_transform_sprite
 bottomrow_done:
@@ -153,46 +156,50 @@ rts
 transform_once:
     ; msb
     ; byte pos 0 on row
-    lda CURRENTROW
+    ldx CURRENTROW
+    lda SPRITE0_BASEADDR, x
     cmp #$0 ; if msb is 0 skip to the middle byte
     beq midb ; jump to the middle byte; 
             ; if this is 0 then so is the lsb
-    lsr CURRENTROW; shift bits right
+    lsr SPRITE0_BASEADDR, x; shift bits right
+    txa ; load the pointer to accumulator to add 2
+    adc #$2 ;
+    tax 
+    asl SPRITE0_BASEADDR, x 
         ; lsb
-    ldx #$2 ; last byte in row
-    asl CURRENTROW, X
     jmp end_transform_once
 midb:
-    dex
+    ldx CURRENTROW
+    inx
     lda #$0
-    cmp CURRENTROW, X 
-    rts
+    cmp SPRITE0_BASEADDR, x 
+    beq end_transform_once 
     lda #$FF ; 1111 1111
-    cmp CURRENTROW, X
+    cmp SPRITE0_BASEADDR, x
     bne mid_pattern_two
     lda #$FE
-    sta CURRENTROW, X
+    sta SPRITE0_BASEADDR, x
     jmp end_transform_once
 mid_pattern_two:
     lda #$FE ; 0111 1110
-    cmp CURRENTROW, X
+    cmp SPRITE0_BASEADDR, x
     bne mid_pattern_three
     lda #$3C
-    sta CURRENTROW, x
+    sta SPRITE0_BASEADDR, x
     jmp end_transform_once
 mid_pattern_three:
     lda #$3C ; 0011 1100
-    cmp CURRENTROW, X 
+    cmp SPRITE0_BASEADDR, x
     bne mid_pattern_four
     lda #$18 ; 
-    sta CURRENTROW, X 
+    sta SPRITE0_BASEADDR, x 
     jmp end_transform_once
 mid_pattern_four:
     lda #$18 ; 0001 1000
-    cmp CURRENTROW, X 
+    cmp SPRITE0_BASEADDR, x 
     bne end_transform_once
     lda #$0 ; 
-    sta CURRENTROW, X 
+    sta SPRITE0_BASEADDR, x 
 end_transform_once:
     rts
 
