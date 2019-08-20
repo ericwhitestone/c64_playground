@@ -100,7 +100,7 @@ inc_ones
     bne inc_ones
     iny
     ldx #$0 ; start the 1s place back at 0
-    cpy #$3F ; Adjust this value to control sprite speed
+    cpy #$7F ; Adjust this value to control sprite speed
     bne inc_ones
     rts
 
@@ -140,9 +140,10 @@ bottomrow_done:
     cmp BOTTOMROW
     beq end_transform_sprite
     ldx TOPROW
+    inx
     lda #$0
-    cmp TOPROW, x    ; if the middle byte of top row is 0 inc row to start 
-    beq check_bottom_row
+    cmp SPRITE0_BASEADDR, x    ; if the middle byte of top row is 0 inc row to start 
+    bne check_bottom_row
                ; a new one on the next iteration
     lda TOPROW
     adc #$3                 ; move row pointers 
@@ -150,9 +151,10 @@ bottomrow_done:
     sta TOPROW
 check_bottom_row:
     ldx BOTTOMROW
+    inx
     lda #$0
-    cmp BOTTOMROW, x 
-    beq end_transform_sprite
+    cmp SPRITE0_BASEADDR, x 
+    bne end_transform_sprite
     lda BOTTOMROW
     sbc #$3
     sta BOTTOMROW
@@ -211,6 +213,7 @@ mid_pattern_four:
     lda #$0 ; 
     sta SPRITE0_BASEADDR, x 
 end_transform_once:
+    dex ; decrement x back to begining of row
     rts
 
 ; PARAM0 -  move count
