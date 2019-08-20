@@ -108,7 +108,7 @@ inc_ones
 init_transform:
     lda #$0 ; top row idx start at 0
     sta TOPROW ; this is not doing what I think it does TODO: womp womp
-    lda $3F-$3 ;beginning of the last row
+    lda  #$3B ;beginning of the last row (62-3)
     sta BOTTOMROW
     rts
 
