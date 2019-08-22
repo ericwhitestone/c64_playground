@@ -108,7 +108,7 @@ inc_ones
 init_transform:
     lda #$0 ; top row idx start at 0
     sta TOPROW ; 
-    lda  #$3B ;beginning of the last row (62-3)
+    lda  #$3C ;beginning of the last row (62-2)
     sta BOTTOMROW
     rts
 
@@ -116,22 +116,21 @@ init_transform:
 transform_sprite:
 ; disappear a top and bottom row in an interleving manner
     ldx TOPROW ;check middle byte and see if 0, if it is we are done with this row set
-;    inx ; middle byte
-  ;  lda SPRITE0_BASEADDR, x 
-;    beq toprow_done ; middle byte of top row is now 0
-;    dex ; set x back to the begining of row
+    inx ; middle byte
+    lda SPRITE0_BASEADDR, x 
+    beq toprow_done ; middle byte of top row is now 0
+    dex ; set x back to the begining of row
     stx CURRENTROW
     jsr transform_once ; work on top row
 toprow_done:
-;    ldx BOTTOMROW
-;    inx ;check the middle byte for 0, if it's 0 this row is finished
-;    lda #$0
-;    cmp SPRITE0_BASEADDR, x 
-;    beq bottomrow_done
-;    dex
-;    stx CURRENTROW
-;    jsr transform_once ; work on bottom row
-;    jmp end_transform_sprite
+    ldx BOTTOMROW
+    inx ;check the middle byte for 0, if it's 0 this row is finished
+    lda SPRITE0_BASEADDR, x 
+    beq bottomrow_done
+    dex
+    stx CURRENTROW
+    jsr transform_once ; work on bottom row
+    jmp end_transform_sprite
 bottomrow_done:
                                     ; if bottom == top don't move the pointers
                                     ; in this case do nothing for now
