@@ -132,30 +132,28 @@ toprow_done:
     jsr transform_once ; work on bottom row
     jmp end_transform_sprite
 bottomrow_done:
-                                    ; if bottom == top don't move the pointers
-                                    ; in this case do nothing for now
-;    lda TOPROW
-;    cmp BOTTOMROW
-;    beq end_transform_sprite
-;    ldx TOPROW
-;    inx
-;    lda #$0
-;    cmp SPRITE0_BASEADDR, x    ; if the middle byte of top row is 0 inc row to start 
-;    bne check_bottom_row
-;               ; a new one on the next iteration
-;    lda TOPROW
-;    adc #$3                 ; move row pointers 
-;                            ; by adding 3 to the top and subbing 3 from bottom
-;    sta TOPROW
-;check_bottom_row:
-;    ldx BOTTOMROW
-;    inx
-;    lda #$0
-;    cmp SPRITE0_BASEADDR, x 
-;    bne end_transform_sprite
-;    lda BOTTOMROW
-;    sbc #$3
-;    sta BOTTOMROW
+    lda TOPROW                ; if bottom == top don't move the pointers
+    cmp BOTTOMROW             ;      TODO change this to test if toprow < bottom row 
+    beq end_transform_sprite   ; in this case do nothing for now
+    ldx TOPROW
+    inx
+    lda SPRITE0_BASEADDR, x
+    bne check_bottom_row
+               ; a new one on the next iteration
+    lda TOPROW
+    clc
+    adc #$3                 ; move row pointers 
+                            ; by adding 3 to the top and subbing 3 from bottom
+    sta TOPROW
+check_bottom_row:
+    ldx BOTTOMROW
+    inx
+    lda SPRITE0_BASEADDR, x
+    bne end_transform_sprite
+    lda BOTTOMROW
+    sec
+    sbc #$3
+    sta BOTTOMROW
 end_transform_sprite:
 rts
 
