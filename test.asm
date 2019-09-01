@@ -8,8 +8,9 @@
 !address PARAM2 = PARAM1 + 1
 !address RETVAL = PARAM2 + 1
 !address CURRENTROW = RETVAL + 1
+!address GAMETICKS0=CURRENTROW+1
+!address GAMETICKS1 = GAMETICKS0 + 1
 !address BOTTOMROW=PARAM0  
-
 !address TOPROW=PARAM1
 BORDER = $d020
 SCREEN = $d021
@@ -93,14 +94,14 @@ position_color_sprite
 ; count to $FFFF using x and y registers
 delay:
     ldx #$0
-    ldy #$0
+    ldy #$4
 inc_ones
     inx 
     cpx #$0 ; If x rolled over, increment the $10s place represented by y
     bne inc_ones
     iny
     ldx #$0 ; start the 1s place back at 0
-    cpy #$7F ; Adjust this value to control sprite speed
+    cpy #$07 ; Adjust this value to control sprite speed
     bne inc_ones
     rts
 
@@ -216,6 +217,8 @@ end_transform_once:
 main_loop:
     jsr init_transform
     lda #$0
+    sta GAMETICKS0
+    sta GAMETICKS1
 run:    
     jsr delay
     jsr transform_sprite
@@ -223,20 +226,76 @@ run:
     iny
     sty SPRITE0_X ;inc x and y to move the sprite across screen
     sty SPRITE0_Y
+    ldx GAMETICKS0 ; keep track of ticks 
+    clc   
+    inx 
+    stx GAMETICKS0
+    bcc ticks_no_carry
+    ldx GAMETICKS1
+    inx 
+    stx GAMETICKS1
+ticks_no_carry:
+    jsr print_debug
     jmp run
 
+
+
+pr_hexletter:
+    clc        ; add 41 to get A-F
+    adc #$41
+    jsr PRINTSR
+    rts
+
+; print the value stored in x, as a hexadecimal character
+print_hexbyte:
+    txa
+    and #$F0 
+    lsr 
+    lsr
+    lsr
+    lsr
+    clc 
+    cmp #$10
+    bcs letter_msn; branch if (0xF0 & x) >= 10
+    adc #$30    
+    jsr PRINTSR
+    jmp ms_nibble
+letter_msn: ; letter most significant nibble
+    jsr pr_hexletter
+ms_nibble:
+    txa 
+    and #$0F 
+    clc 
+    cmp #$10 
+    bcs letter_lsn 
+    adc #$30
+    jsr PRINTSR
+    jmp print_hex_done
+letter_lsn: ; letter least significant nibble
+    jsr pr_hexletter
+print_hex_done:
+    rts
+
+
+
+
+
 DEBUGSTR: 
-    !pet "hello, this is a c64 program! *we got here*", 0
+    !pet $13, "game ticks: ",  0
+
 print_debug:
     ldx #$0
 print_debug_loop:
 
     lda DEBUGSTR, x
-    cmp #$0
     beq end_print_debug
     jsr PRINTSR
     inx
     jmp print_debug_loop
 end_print_debug
+;    ldx GAMETICKS1
+;    jsr print_hexbyte
+    ldx GAMETICKS0
+    jsr print_hexbyte
     rts
 
