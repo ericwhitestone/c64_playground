@@ -242,7 +242,7 @@ ticks_no_carry:
 
 pr_hexletter:
     clc        ; add 41 to get A-F
-    adc #$41
+    adc #$37
     jsr PRINTSR
     rts
 
@@ -255,8 +255,8 @@ print_hexbyte:
     lsr
     lsr
     clc 
-    cmp #$10
-    bcs letter_msn; branch if (0xF0 & x) >= 10
+    cmp #$0A
+    bcs letter_msn; branch if (0xF0 & x) >= 0A
     adc #$30    
     jsr PRINTSR
     jmp ms_nibble
@@ -266,13 +266,16 @@ ms_nibble:
     txa 
     and #$0F 
     clc 
-    cmp #$10 
+    cmp #$0A
     bcs letter_lsn 
     adc #$30
     jsr PRINTSR
     jmp print_hex_done
+
 letter_lsn: ; letter least significant nibble
     jsr pr_hexletter
+    rts
+
 print_hex_done:
     rts
 
@@ -293,8 +296,8 @@ print_debug_loop:
     inx
     jmp print_debug_loop
 end_print_debug
-;    ldx GAMETICKS1
-;    jsr print_hexbyte
+    ldx GAMETICKS1
+    jsr print_hexbyte
     ldx GAMETICKS0
     jsr print_hexbyte
     rts
