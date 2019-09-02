@@ -167,7 +167,7 @@ transform_once:
     ; byte pos 0 on row
     ldx CURRENTROW
     lda SPRITE0_BASEADDR, x
-    beq midb ; jump to the middle byte; 
+    beq +; jump to the middle byte; 
              ; if this is 0 then so is the lsb
     lsr SPRITE0_BASEADDR, x; shift bits right
     txa ; load the pointer to accumulator to add 2
@@ -177,7 +177,7 @@ transform_once:
     asl SPRITE0_BASEADDR, x
         ; lsb
     rts
-midb:
++
     ldx CURRENTROW
     inx
     lda #$0
@@ -185,25 +185,25 @@ midb:
     beq end_transform_once 
     lda #$FF ; 1111 1111
     cmp SPRITE0_BASEADDR, x
-    bne mid_pattern_two
+    bne ++
     lda #$FE
     sta SPRITE0_BASEADDR, x
     jmp end_transform_once
-mid_pattern_two:
+++
     lda #$FE ; 0111 1110
     cmp SPRITE0_BASEADDR, x
-    bne mid_pattern_three
+    bne +
     lda #$3C
     sta SPRITE0_BASEADDR, x
     jmp end_transform_once
-mid_pattern_three:
++
     lda #$3C ; 0011 1100
     cmp SPRITE0_BASEADDR, x
-    bne mid_pattern_four
+    bne +
     lda #$18 ; 
     sta SPRITE0_BASEADDR, x 
     jmp end_transform_once
-mid_pattern_four:
++
     lda #$18 ; 0001 1000
     cmp SPRITE0_BASEADDR, x 
     bne end_transform_once
@@ -213,15 +213,19 @@ end_transform_once:
     dex ; decrement x back to begining of row
     rts
 
-; PARAM0 -  move count
+.xform_interval=$FF
 main_loop:
     jsr init_transform
     lda #$0
     sta GAMETICKS0
     sta GAMETICKS1
 run:    
-    jsr delay
+;    jsr delay
+    lda GAMETICKS0
+    cmp .xform_interval
+    bne + ;only transform if we've hit the interval
     jsr transform_sprite
++
     ldy SPRITE0_X
     iny
     sty SPRITE0_X ;inc x and y to move the sprite across screen
