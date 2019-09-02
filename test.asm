@@ -226,10 +226,10 @@ run:
     iny
     sty SPRITE0_X ;inc x and y to move the sprite across screen
     sty SPRITE0_Y
-    ldx GAMETICKS0 ; keep track of ticks 
+    lda GAMETICKS0 ; keep track of ticks 
     clc   
-    inx 
-    stx GAMETICKS0
+    adc #$1
+    sta GAMETICKS0
     bcc ticks_no_carry
     ldx GAMETICKS1
     inx 
